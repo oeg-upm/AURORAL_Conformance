@@ -13,7 +13,7 @@
     <div class="container">
     <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
       <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
-        <img class="bi me-2" width="40" height="32" src="{% static 'img/auroral.png' %}" alt=""/>
+        <img class="bi me-2" width="120" height="32" src="{% static 'img/auroral.png' %}" alt=""/>
         <span class="fs-4">Compliance Service</span>
       </a>
       <ul class="nav nav-pills">
@@ -63,7 +63,17 @@
 
     <h1>Conformance result:</h1>
     
-    <a>{{ item.result }}</a>
+    <table class="table table-striped">
+    <tr><th>Status</th><th>Check</th></tr>
+    <tr><td>Not Checked</td><td>{% if item.conformance_status >= 0 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>Not Available</td><td>{% if item.conformance_status >= 1 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>Available</td><td>{% if item.conformance_status >= 2 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>Syntactic</td><td>{% if item.conformance_status >= 3 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>Semantic</td><td>{% if item.conformance_status >= 4 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>Compliant</td><td>{% if item.conformance_status >= 5 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+</table>
+    
+    <a>{{ item.conformance_status }}</a>
     
   <footer class="py-3 my-4">
       <ul class="nav justify-content-center border-bottom pb-3 mb-3"></ul>
