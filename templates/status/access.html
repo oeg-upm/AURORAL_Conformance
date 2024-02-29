@@ -1,15 +1,16 @@
 {% load static %}
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Element: {{ item.name }}</title>
+    <title>Document</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
 </head>
-
+<body>
     <div class="container">
     <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
       <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
@@ -18,22 +19,18 @@
       </a>
       <ul class="nav nav-pills">
         <li class="nav-item"><a href='{% url "index" %}' class="nav-link">All endpoints</a></li>
-        <li class="nav-item"><a href='{% url "valid" %}' class="nav-link">Validated</a></li>
-        <li class="nav-item"><a href='{% url "notValid" %}' class="nav-link">Not validated</a></li>
+        <li class="nav-item"><a href='{% url "valid" %}' class="nav-link">Conformance</a></li>
+        <li class="nav-item"><a href='{% url "notValid" %}' class="nav-link">Not conformance</a></li>
       </ul>
     </header>
-  </div>
 
-<body>
-
-    <div class="container">
-
-   
-    <h1>Element from {{ item.company }}:</h1>
+    <h1>All nodes:</h1>
     <table class="table table-striped">
     <tr>
+        <th scope="col">#</th>
         <th scope="col">Company</th>
         <th scope="col">Name</th>
+        <th scope="col">Property</th>
         <th scope="col">Oid</th>
         <th scope="col">Agid</th>
         <th scope="col">Cid</th>
@@ -41,9 +38,12 @@
         <th scope="col">Is conformance</th>
         <th scope="col">Conformance checking</th>
     </tr>
+        {% for item in object_list %}
         <tr>
+            <td><a href="{% url 'element_detail' item.id %}">{{ forloop.counter }}</a></td>
             <td>{{ item.company }}</td>
             <td>{{ item.name }}</td>
+            <td>{{ item.property }}</td>
             <td>{{ item.oid }}</td>
             <td>{{ item.agid }}</td>
             <td>{{ item.cid }}</td>
@@ -61,30 +61,53 @@
         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
         Cargando...
     </button>
-</td>    </table>
-
-    <h1>Conformance result:</h1>
-    
-    <table class="table table-striped">
-    <tr><th>Status</th><th>Check</th></tr>
-    <tr><td>Not Checked</td><td>{% if item.conformance_status >= 0 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>Access level conformant</td><td>{% if item.conformance_status >= 1 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>Syntax level conformant</td><td>{% if item.conformance_status >= 2 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>Semantic level conformant</td><td>{% if item.conformance_status >= 3 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>Semantic interoperability conformant</td><td>{% if item.conformance_status >= 4 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>W3C WoT conformant</td><td>{% if item.conformance_status >= 5 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-</table>
-    <h3>Conformance actual status:</h3>
-        {{item.reportInfo}}
+</td>
+        </tr>
+        {% endfor %}
+    </table>
+        
 
   <footer class="py-3 my-4">
       <ul class="nav justify-content-center border-bottom pb-3 mb-3"></ul>
       <p class="text-center text-body-secondary">© 2023 Universidad Politécnica de Madrid</p>
   </footer>
 </div>
-
 </body>
 <script>
+    
+        document.getElementById('reload-endpoints-btn').addEventListener('click', function() {
+        fetch('/retrieve-endpoints')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.info(data.status)
+                    const objectList = data.object_list;
+                    let tableRows = '';
+                    objectList.forEach((item, index) => {
+                        tableRows += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td><span class="badge text-bg-success rounded-pill">${item.name}</span></td>
+                                <td>${item.is_valid ? 'Yes' : 'No'}</td>
+                            </tr>`;
+                    });
+                    document.querySelector('.table-striped').innerHTML = `
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Endpoint</th>
+                            <th scope="col">Validated</th>
+                        </tr>` + tableRows;
+                } else {
+                    console.log(data)
+                    console.error('Error:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
+    
+    
     
 function validateItem(oid, property, itemId) {
     const checkButton = document.getElementById(`check-btn-${itemId}`);
@@ -95,7 +118,6 @@ function validateItem(oid, property, itemId) {
         return;
     }
 
-    // Muestra el botón de carga y oculta el botón de verificar
     checkButton.classList.add('d-none');
     loadingButton.classList.remove('d-none');
 
@@ -114,12 +136,11 @@ function validateItem(oid, property, itemId) {
             console.error('Error:', error);
         })
         .finally(() => {
-            // Oculta el botón de carga y muestra el botón de verificar una vez finalizada la validación
             loadingButton.classList.add('d-none');
             checkButton.classList.remove('d-none');
         });
 }
 
 </script>
-
 </html>
+

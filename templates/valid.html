@@ -23,14 +23,15 @@
         <li class="nav-item"><a href='{% url "notValid" %}' class="nav-link">Not conformance</a></li>
       </ul>
     </header>
-  </div>
-        <div class="container">
+
+    
     <h1>Conformance nodes:</h1>
     <table class="table table-striped">
     <tr>
         <th scope="col">#</th>
         <th scope="col">Company</th>
         <th scope="col">Name</th>
+        <th scope="col">Property</th>
         <th scope="col">Oid</th>
         <th scope="col">Agid</th>
         <th scope="col">Cid</th>
@@ -40,25 +41,33 @@
     </tr>
         {% for item in object_list %}
         <tr>
-            <td>{{ forloop.counter }}</td>
+            <td><a href="{% url 'element_detail' item.id %}">{{ forloop.counter }}</a></td>
             <td>{{ item.company }}</td>
             <td>{{ item.name }}</td>
+            <td>{{ item.property }}</td>
             <td>{{ item.oid }}</td>
             <td>{{ item.agid }}</td>
             <td>{{ item.cid }}</td>
             <td>{{ item.check_date }}</td>
-            <td>
+            <td id="validation-cell-{{ item.id }}">
             {% if item.is_valid %}
                 <span class="badge text-bg-success rounded-pill">True</span>
             {% else %}
                 <span class="badge text-bg-danger rounded-pill">False</span>
             {% endif %}
             </td>
-<td><button class="btn btn-primary" type="button" onclick="validateItem('{{ item.agid }}', '{{ item.oid }}')">Check conformance</button></td>        </tr>
+<td>
+    <button class="btn btn-primary" type="button" id="check-btn-{{ item.id }}" onclick="validateItem('{{ item.oid }}', '{{ item.property }}', '{{ item.id }}')">Check conformance</button>
+    <button class="btn btn-secondary d-none" type="button" id="loading-btn-{{ item.id }}" disabled>
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Cargando...
+    </button>
+</td>
+        </tr>
         {% endfor %}
     </table>
-        </div>
-<div class="container">
+
+        
   <footer class="py-3 my-4">
       <ul class="nav justify-content-center border-bottom pb-3 mb-3"></ul>
       <p class="text-center text-body-secondary">© 2023 Universidad Politécnica de Madrid</p>
@@ -66,21 +75,70 @@
 </div>
 </body>
 <script>
-    function validateItem(agid, oid) {
-        fetch(`/validate-item/${agid}/${oid}/`)
+   document.getElementById('reload-endpoints-btn').addEventListener('click', function() {
+        fetch('/retrieve-endpoints')
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                const validationCell = document.getElementById(`validation-cell-${itemId}`);
-                validationCell.innerHTML = '<span class="badge text-bg-success rounded-pill">True</span>';
+                    console.info(data.status)
+                    const objectList = data.object_list;
+                    let tableRows = '';
+                    objectList.forEach((item, index) => {
+                        tableRows += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td><span class="badge text-bg-success rounded-pill">${item.name}</span></td>
+                                <td>${item.is_valid ? 'Yes' : 'No'}</td>
+                            </tr>`;
+                    });
+                    document.querySelector('.table-striped').innerHTML = `
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Endpoint</th>
+                            <th scope="col">Validated</th>
+                        </tr>` + tableRows;
                 } else {
-                    console.error('Validación fallida:', data.message);
+                    console.log(data)
+                    console.error('Error:', data.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
             });
+    });
+    
+    
+function validateItem(oid, property, itemId) {
+    const checkButton = document.getElementById(`check-btn-${itemId}`);
+    const loadingButton = document.getElementById(`loading-btn-${itemId}`);
+    
+    if (!checkButton || !loadingButton) {
+        console.error(`Botones no encontrados para el itemId: ${itemId}`);
+        return;
     }
+
+    checkButton.classList.add('d-none');
+    loadingButton.classList.remove('d-none');
+
+    fetch(`/validate-item/${oid}/${property}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const validationCell = document.getElementById(`validation-cell-${itemId}`);
+                validationCell.innerHTML = '<span class="badge text-bg-success rounded-pill">True</span>';
+                console.info(data);
+            } else {
+                console.error('Validación fallida:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            loadingButton.classList.add('d-none');
+            checkButton.classList.remove('d-none');
+        });
+}
 </script>
 </html>
 

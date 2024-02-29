@@ -12,6 +12,7 @@ class ValidThingDescription(models.Model):
     check_date = models.DateField(default=timezone.now)
     is_valid = models.BooleanField(default=False)
     conformance_status = models.IntegerField(default=0)
+    reportInfo = models.CharField(max_length=100, default="Not Checked")
 
     def __str__(self):
         return self.name

@@ -42,6 +42,46 @@ class NotValidTD(ListView):
         return ValidThingDescription.objects.filter(is_valid=False)
 
 
+class NotChecked(ListView):
+    model = ValidThingDescription
+    template_name = "status/access.html"
+
+    def get_queryset(self):
+        return ValidThingDescription.objects.filter(conformance_status=0)
+
+
+class AccessLevel(ListView):
+    model = ValidThingDescription
+    template_name = "status/access.html"
+
+    def get_queryset(self):
+        return ValidThingDescription.objects.filter(conformance_status=1)
+
+
+class SyntaxLevel(ListView):
+    model = ValidThingDescription
+    template_name = "status/access.html"
+
+    def get_queryset(self):
+        return ValidThingDescription.objects.filter(conformance_status=2)
+
+
+class SyntacticLevel(ListView):
+    model = ValidThingDescription
+    template_name = "status/access.html"
+
+    def get_queryset(self):
+        return ValidThingDescription.objects.filter(conformance_status=3)
+
+
+class SemanticLevel(ListView):
+    model = ValidThingDescription
+    template_name = "status/access.html"
+
+    def get_queryset(self):
+        return ValidThingDescription.objects.filter(conformance_status=4)
+
+
 def retrieve_endpoints_view(request):
     try:
         config = Configuration.objects.first()
@@ -99,22 +139,30 @@ def validate_item(request, oid, property):
     try:
         url = Configuration.objects.first()
         item = ValidThingDescription.objects.get(oid=oid, property=property)
-        compliance_result = is_compliance(url.url_server, url.oid, oid, property)
+        compliance_result, report_message = is_compliance(url.url_server, url.oid, oid, property)
         item.check_date = timezone.now()
-        print(compliance_result)
         if compliance_result == 5:
             item.conformance_status = compliance_result
+            item.reportInfo = "WoT Conformant"
             item.is_valid = True
         elif not compliance_result:
             item.conformance_status = 1
+            item.reportInfo = "No access"
             item.is_valid = False
         else:
             print(compliance_result)
             item.conformance_status = compliance_result
             item.is_valid = False
+            item.reportInfo = report_message
         item.save()
         return JsonResponse({'status': str(item.is_valid), 'message': 'Conformant.'})
     except ValidThingDescription.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Not found.'})
     except Exception as e:
+        item = ValidThingDescription.objects.get(oid=oid, property=property)
+        item.check_date = timezone.now()
+        item.conformance_status = 1
+        item.reportInfo = str(e)
+        item.is_valid = False
+        item.save()
         return JsonResponse({'status': 'error', 'message': str(e)})

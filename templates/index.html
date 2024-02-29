@@ -20,6 +20,12 @@
         <li class="nav-item"><a href='{% url "index" %}' class="nav-link active" aria-current="page">All endpoints</a></li>
         <li class="nav-item"><a href='{% url "valid" %}' class="nav-link">Conformance</a></li>
         <li class="nav-item"><a href='{% url "notValid" %}' class="nav-link">Not conformance</a></li>
+        <li class="nav-item">
+            <form action="{% url 'logout' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary" >Logout</button>
+            </form>
+        </li>
       </ul>
     </header>
   </div>
@@ -27,22 +33,41 @@
     <div class="container">
         <div class="d-flex justify-content-center">
                 <button id="reload-endpoints-btn" class="btn btn-primary" type="button">Reload Endpoints</button>
-<button class="btn btn-secondary" type="button" onclick="checkAllItems()">
+<button class="btn btn-secondary" type="button" id="check-all-btn" onclick="checkAllItems()">
     Check All
-    <span id="loadingIcon" style="display: none;">
-        <img src="{% static 'img/loading.gif' %}" alt="Loading" >
-    </span>
+    <span id="loading-spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
 </button>            </div>
     
     <h1>Node status:</h1>
     <table class="table table-striped">
-        <tr><th>Status</th><th>Number of Nodes</th></tr>
-        <tr><td>Not Checked</td><td>{{ status_counts.0 }}</td></tr>
-        <tr><td>Not Available</td><td>{{ status_counts.1 }}</td></tr>
-        <tr><td>Available</td><td>{{ status_counts.2 }}</td></tr>
-        <tr><td>Syntactic</td><td>{{ status_counts.3 }}</td></tr>
-        <tr><td>Semantic</td><td>{{ status_counts.4 }}</td></tr>
-        <tr><td>Compliant</td><td>{{ status_counts.5 }}</td></tr>
+        <tr>
+            <th>Status</th>
+            <th>Number of Nodes</th>
+        </tr>
+        <tr>
+            <td>Not Checked</td>
+            <td><a href='{% url "notChecked" %}'>{{ status_counts.0 }}</a></td>
+        </tr>
+        <tr>
+            <td>Access level conformant (Technical interoperability)</td>
+            <td><a href='{% url "AccessLevel" %}'>{{ status_counts.1 }}</a></td>
+        </tr>
+        <tr>
+            <td>Syntax level conformant (Syntactic interoperability)</td>
+            <td><a href='{% url "SyntaxLevel" %}'>{{ status_counts.2 }}</a></td>
+        </tr>
+        <tr>
+            <td>Semantic level conformant (Syntactic interoperability)</td>
+            <td><a href='{% url "SyntacticLevel" %}'>{{ status_counts.3 }}</a></td>
+        </tr>
+        <tr>
+            <td>Semantic interoperability</td>
+            <td><a href='{% url "SemanticLevel" %}'>{{ status_counts.4 }}</a></td>
+        </tr>
+        <tr>
+            <td>W3C WoT conformant (WoT interoperability)</td>
+            <td><a href='{% url "valid" %}'>{{ status_counts.5 }}</a></td>
+        </tr>
     </table>
     
     <h1>All nodes:</h1>
@@ -76,9 +101,13 @@
                 <span class="badge text-bg-danger rounded-pill">False</span>
             {% endif %}
             </td>
-        <td>
-            <button class="btn btn-primary" type="button" onclick="validateItem('{{ item.oid }}', '{{ item.property }}', '{{ item.id }}')">Check conformance</button>
-        </td>
+<td>
+    <button class="btn btn-primary" type="button" id="check-btn-{{ item.id }}" onclick="validateItem('{{ item.oid }}', '{{ item.property }}', '{{ item.id }}')">Check conformance</button>
+    <button class="btn btn-secondary d-none" type="button" id="loading-btn-{{ item.id }}" disabled>
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Cargando...
+    </button>
+</td>
         </tr>
         {% endfor %}
     </table>
@@ -123,25 +152,44 @@
     });
     
 function validateItem(oid, property, itemId) {
+    const checkButton = document.getElementById(`check-btn-${itemId}`);
+    const loadingButton = document.getElementById(`loading-btn-${itemId}`);
+    
+    if (!checkButton || !loadingButton) {
+        console.error(`Botones no encontrados para el itemId: ${itemId}`);
+        return;
+    }
+
+    checkButton.classList.add('d-none');
+    loadingButton.classList.remove('d-none');
+
     fetch(`/validate-item/${oid}/${property}`)
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
                 const validationCell = document.getElementById(`validation-cell-${itemId}`);
                 validationCell.innerHTML = '<span class="badge text-bg-success rounded-pill">True</span>';
-                console.info(data)
+                console.info(data);
             } else {
                 console.error('Validación fallida:', data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
+        })
+        .finally(() => {
+            loadingButton.classList.add('d-none');
+            checkButton.classList.remove('d-none');
         });
 }
 
 function checkAllItems() {
-    const loadingIcon = document.getElementById('loadingIcon');
-    loadingIcon.style.display = 'inline-block';
+    const checkAllButton = document.getElementById('check-all-btn');
+    const loadingSpinner = document.getElementById('loading-spinner');
+
+    // Muestra el spinner de carga en el botón
+    loadingSpinner.classList.remove('d-none');
+    checkAllButton.disabled = true;
 
     const rows = document.querySelectorAll("table.table-striped tr");
     let promises = [];
@@ -159,7 +207,9 @@ function checkAllItems() {
     });
 
     Promise.all(promises).then(() => {
-        loadingIcon.style.display = 'none';
+        // Oculta el spinner de carga y habilita nuevamente el botón
+        loadingSpinner.classList.add('d-none');
+        checkAllButton.disabled = false;
     });
 }
 

@@ -71,55 +71,58 @@ def is_compliance(url, localoid, oid, property):
         return check_compliance(result_org.get("message"))
     except Exception as e:
         print(str(e))
-        return False
+        return (1,str(e))
 
 
 def check_compliance(data):
     try:
-        print(data)
         if data is None:
             print("The content is not a valid JSON")
-            #return False
-            return 3
+            return (3, "The content is not a valid JSON")
         jsonld.expand(data)
-        context = data.get('@context')
-        if isinstance(context, str) and context.startswith(('http://', 'https://')):
-            response = requests.get(context)
-            response.raise_for_status()
-            context_data = response.json()
+        print(data)
+        contexts = data.get('@context')
+        if contexts is None:
+            return (1, "Not a valid JSON-LD 1.1")
+
+        context_keys = set()
+        if isinstance(contexts, list):
+            for context in contexts:
+                if isinstance(context, str) and context.startswith(('http://', 'https://')):
+                    response = requests.get(context)
+                    response.raise_for_status()
+                    context_data = response.json()
+                    context_keys.update(extract_keys_from_json(context_data))
+                elif isinstance(context, dict):
+                    context_keys.update(context.keys())
         else:
-            context_data = context
-        context_keys = extract_keys_from_json(context_data)
+            # Handle single context case
+            if isinstance(contexts, str) and contexts.startswith(('http://', 'https://')):
+                response = requests.get(contexts)
+                response.raise_for_status()
+                context_data = response.json()
+                context_keys.update(extract_keys_from_json(context_data))
+            elif isinstance(contexts, dict):
+                context_keys.update(contexts.keys())
+
         jsonld_data_without_context = {k: v for k, v in data.items() if k != '@context'}
         jsonld_keys = extract_keys_from_json(jsonld_data_without_context)
         missing_keys = jsonld_keys - context_keys
         if missing_keys:
-            #return False
             print(f"Keys not present in @context: {', '.join(missing_keys)}")
-            return 4
-        return 5
+            return (4, f"Keys not present in @context: {', '.join(missing_keys)}")
+        return (5, "WoT Conformant!")
     except JsonLdError as e:
-        print("nb")
-        return 2
-        #if "loading remote context failed" in str(e):
-            #print("BBBB")
-            #return JsonResponse({
-                #'is_valid_jsonld': False,
-                #'message': "Invalid URL context, please check your URL"
-            #}), 400
-        #else:
-            #print("CC")
-            #return JsonResponse({
-                #'is_valid_jsonld': False,
-                #'message': str(e)
-            #}), 400
+        print(e)
+        if "loading remote context failed" in str(e):
+            print("Invalid URL context, please check your URL")
+            return (2, str(e))
+        else:
+            print(e)
+            return (2, str(e))
     except Exception as e:
-        print("a")
-        return 1
-        #return JsonResponse({
-            #'is_valid_jsonld': False,
-            #'message': str(e)
-        #}), 400
+        print(e)
+        return (1, "No access")
 
 
 def extract_keys_from_json(data):
