@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from pyld import jsonld
 from pyld.jsonld import JsonLdError
 
-from validation.models import ValidThingDescription
+from validation.models import ValidThingDescription, Company
 
 
 def retrieve_endpoints(url):
@@ -45,7 +45,9 @@ def process_items(combined_items, url):
     for item in combined_items:
         oid = item['oid']
         agid = item['agid']
+        company_name = item.get('company')
         try:
+            company, created = Company.objects.get_or_create(name=company_name)
             response_detail = requests.get(url + "/api/discovery/remote/td/" + agid + "?oids=" + oid)
             response_detail.raise_for_status()
             detail = response_detail.json()

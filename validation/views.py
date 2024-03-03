@@ -5,15 +5,24 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.generic import ListView
-from .models import Configuration, ValidThingDescription
+from .models import Configuration, ValidThingDescription, UserProfile
 from .services import retrieve_endpoints, is_compliance
 from django.http import JsonResponse
 from django.utils import timezone
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count
+from django.contrib.auth.decorators import login_required, user_passes_test
 
-
-class AllTD(ListView):
+class AllTD(LoginRequiredMixin, ListView):
     model = ValidThingDescription
     template_name = "index.html"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -22,7 +31,16 @@ class AllTD(ListView):
         status_counts = {status['conformance_status']: status['count'] for status in status_counts_query}
         for status in range(6):
             status_counts.setdefault(status, 0)
+
+        total = sum(status_counts.values())
+        conformant = status_counts.get(5, 0)
+        not_conformant = total - conformant
+
         context['status_counts'] = status_counts
+        context['total'] = total
+        context['conformant'] = conformant
+        context['not_conformant'] = not_conformant
+
         return context
 
 

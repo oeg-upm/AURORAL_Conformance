@@ -14,7 +14,7 @@
     <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
       <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
         <img class="bi me-2" width="120" height="32" src="{% static 'img/auroral.png' %}" alt=""/>
-        <span class="fs-4">Compliance Service</span>
+        <span class="fs-4">Conformant service</span>
       </a>
       <ul class="nav nav-pills">
         <li class="nav-item"><a href='{% url "index" %}' class="nav-link">All endpoints</a></li>
@@ -59,20 +59,20 @@
     <button class="btn btn-primary" type="button" id="check-btn-{{ item.id }}" onclick="validateItem('{{ item.oid }}', '{{ item.property }}', '{{ item.id }}')">Check conformance</button>
     <button class="btn btn-secondary d-none" type="button" id="loading-btn-{{ item.id }}" disabled>
         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-        Cargando...
+        Loading...
     </button>
 </td>    </table>
 
     <h1>Conformance result:</h1>
     
     <table class="table table-striped">
-    <tr><th>Status</th><th>Check</th></tr>
+    <tr><th>Status</th><th>Status</th></tr>
     <tr><td>Not Checked</td><td>{% if item.conformance_status >= 0 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
     <tr><td>Access level conformant</td><td>{% if item.conformance_status >= 1 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
     <tr><td>Syntax level conformant</td><td>{% if item.conformance_status >= 2 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
     <tr><td>Semantic level conformant</td><td>{% if item.conformance_status >= 3 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
     <tr><td>Semantic interoperability conformant</td><td>{% if item.conformance_status >= 4 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>W3C WoT conformant</td><td>{% if item.conformance_status >= 5 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>AURORAL conformant</td><td>{% if item.conformance_status >= 5 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
 </table>
     <h3>Conformance actual status:</h3>
         {{item.reportInfo}}

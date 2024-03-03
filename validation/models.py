@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-
+from django.contrib.auth.models import User
 
 class ValidThingDescription(models.Model):
     name = models.CharField(max_length=100)
@@ -30,3 +30,15 @@ class Configuration(models.Model):
     def __str__(self):
         return f"{self.url_server}, {self.oid}"
 
+class Company(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return self.user.username
