@@ -14,12 +14,18 @@
     <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
       <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
         <img class="bi me-2" width="120" height="32" src="{% static 'img/auroral.png' %}" alt=""/>
-        <span class="fs-4">Conformant service</span>
+        <span class="fs-4">Conformance service</span>
       </a>
       <ul class="nav nav-pills">
         <li class="nav-item"><a href='{% url "index" %}' class="nav-link">All endpoints</a></li>
         <li class="nav-item"><a href='{% url "valid" %}' class="nav-link">Validated</a></li>
         <li class="nav-item"><a href='{% url "notValid" %}' class="nav-link">Not validated</a></li>
+        <li class="nav-item">
+            <form action="{% url 'logout' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary" >Logout</button>
+            </form>
+        </li>
       </ul>
     </header>
   </div>
@@ -38,7 +44,7 @@
         <th scope="col">Agid</th>
         <th scope="col">Cid</th>
         <th scope="col">Last verification</th>
-        <th scope="col">Is conformance</th>
+        <th scope="col">Is conformant</th>
         <th scope="col">Conformance checking</th>
     </tr>
         <tr>
@@ -62,17 +68,24 @@
         Loading...
     </button>
 </td>    </table>
+    
+<div class="form-group">
+    <label for="extra-parameters">Extra Parameters:</label>
+    <input type="text" class="form-control" id="extra-parameters" placeholder="lat=48.14816&lon=17.10674">
+</div>
 
-    <h1>Conformance result:</h1>
+    
+    <h1 class="mt-3">Conformance result:</h1>
     
     <table class="table table-striped">
-    <tr><th>Status</th><th>Status</th></tr>
+    <tr><th>Status</th><th>Result</th></tr>
     <tr><td>Not Checked</td><td>{% if item.conformance_status >= 0 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>Access level conformant</td><td>{% if item.conformance_status >= 1 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>Syntax level conformant</td><td>{% if item.conformance_status >= 2 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>Semantic level conformant</td><td>{% if item.conformance_status >= 3 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>Semantic interoperability conformant</td><td>{% if item.conformance_status >= 4 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
-    <tr><td>AURORAL conformant</td><td>{% if item.conformance_status >= 5 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>No access</td><td>{% if item.conformance_status >= 1 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>Access level conformant (Technical interoperability)</td><td>{% if item.conformance_status >= 2 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>JSON conformant (Syntactic interoperability)</td><td>{% if item.conformance_status >= 3 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>JSON-LD 1.1 conformant (Syntactic interoperability)</td><td>{% if item.conformance_status >= 4 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>Ontology conformant (Semantic interoperability)</td><td>{% if item.conformance_status >= 5 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
+    <tr><td>AURORAL conformant (Semantic interoperability)</td><td>{% if item.conformance_status >= 6 %}<img width="32" height="32" src="{% static 'img/check.png' %}">{% else %}<img width="32" height="32" src="{% static 'img/notcheck.png' %}">{% endif %}</td></tr>
 </table>
     <h3>Conformance actual status:</h3>
         {{item.reportInfo}}
@@ -89,17 +102,23 @@
 function validateItem(oid, property, itemId) {
     const checkButton = document.getElementById(`check-btn-${itemId}`);
     const loadingButton = document.getElementById(`loading-btn-${itemId}`);
-    
+    const extraParameters = document.getElementById('extra-parameters').value;
+
     if (!checkButton || !loadingButton) {
         console.error(`Botones no encontrados para el itemId: ${itemId}`);
         return;
     }
-
-    // Muestra el botón de carga y oculta el botón de verificar
+    
     checkButton.classList.add('d-none');
     loadingButton.classList.remove('d-none');
+    
+    let url = `/validate-item/${oid}/${property}`;
+    if (extraParameters) {
+        url += `?${extraParameters}`;
+        console.log(url)
+    }
 
-    fetch(`/validate-item/${oid}/${property}`)
+    fetch(url)
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
@@ -114,7 +133,6 @@ function validateItem(oid, property, itemId) {
             console.error('Error:', error);
         })
         .finally(() => {
-            // Oculta el botón de carga y muestra el botón de verificar una vez finalizada la validación
             loadingButton.classList.add('d-none');
             checkButton.classList.remove('d-none');
         });

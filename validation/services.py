@@ -6,7 +6,7 @@ from pyld import jsonld
 from pyld.jsonld import JsonLdError
 
 from validation.models import ValidThingDescription, Company
-
+from urllib.parse import urlencode
 
 def retrieve_endpoints(url):
     try:
@@ -65,9 +65,14 @@ def process_items(combined_items, url):
     return expanded_items
 
 
-def is_compliance(url, localoid, oid, property):
+def is_compliance(url, localoid, oid, property, extra_parameters=None):
     try:
-        response_org = requests.get(url + "/api/properties/" + localoid + "/" + oid + "/" + property)
+        #response_org = requests.get(url + "/api/properties/" + localoid + "/" + oid + "/" + property)
+        request_url = f"{url}/api/properties/{localoid}/{oid}/{property}"
+        if extra_parameters:
+            query_string = urlencode(extra_parameters)  # Convierte el diccionario a una cadena de consulta
+            request_url += f"?{query_string}"
+        response_org = requests.get(request_url)
         response_org.raise_for_status()
         result_org = response_org.json()
         return check_compliance(result_org.get("message"))
@@ -78,20 +83,27 @@ def is_compliance(url, localoid, oid, property):
 
 def check_compliance(data):
     try:
-        if data is None:
-            print("The content is not a valid JSON")
-            return (3, "The content is not a valid JSON")
+        if isinstance(data, list) and len(data) > 0:
+            data = data[0]
+        elif data is None:
+            return (2, "The content is not a valid JSON")
+        elif (isinstance(data, list) and len(data) == 0):
+            return (2, "The content is an empty list")
         jsonld.expand(data)
         print(data)
+        isAuroralConformant = False
         contexts = data.get('@context')
         if contexts is None:
-            return (1, "Not a valid JSON-LD 1.1")
+            return (3, "Not a valid JSON-LD 1.1")
 
         context_keys = set()
         if isinstance(contexts, list):
             for context in contexts:
                 if isinstance(context, str) and context.startswith(('http://', 'https://')):
                     response = requests.get(context)
+                    if context.startswith(('http://auroralh2020.github.io/auroral-ontology-contexts/',
+                                            'https://auroralh2020.github.io/auroral-ontology-contexts/')):
+                        isAuroralConformant = True
                     response.raise_for_status()
                     context_data = response.json()
                     context_keys.update(extract_keys_from_json(context_data))
@@ -101,6 +113,9 @@ def check_compliance(data):
             # Handle single context case
             if isinstance(contexts, str) and contexts.startswith(('http://', 'https://')):
                 response = requests.get(contexts)
+                print(response)
+                if contexts.startswith(('http://auroralh2020.github.io/auroral-ontology-contexts/', 'https://auroralh2020.github.io/auroral-ontology-contexts/')):
+                    isAuroralConformant = True
                 response.raise_for_status()
                 context_data = response.json()
                 context_keys.update(extract_keys_from_json(context_data))
@@ -113,7 +128,10 @@ def check_compliance(data):
         if missing_keys:
             print(f"Keys not present in @context: {', '.join(missing_keys)}")
             return (4, f"Keys not present in @context: {', '.join(missing_keys)}")
-        return (5, "WoT Conformant!")
+        if isAuroralConformant:
+            return (6, "Auroral Conformant")
+        else:
+            return (5, "Semantic interoperability conformant")
     except JsonLdError as e:
         print(e)
         if "loading remote context failed" in str(e):

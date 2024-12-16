@@ -6,7 +6,7 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Conformant service</title>
+    <title>Conformance service</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
 </head>
 <body>
@@ -15,12 +15,12 @@
     <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
       <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
         <img class="bi me-2" width="120" height="32" src="{% static 'img/auroral.png' %}" alt=""/>
-        <span class="fs-4">Conformant service</span>
+        <span class="fs-4">Conformance service</span>
       </a>
       <ul class="nav nav-pills">
         <li class="nav-item"><a href='{% url "index" %}' class="nav-link active" aria-current="page">All endpoints</a></li>
-        <li class="nav-item"><a href='{% url "valid" %}' class="nav-link">Conformance</a></li>
-        <li class="nav-item"><a href='{% url "notValid" %}' class="nav-link">Not conformance</a></li>
+        <li class="nav-item"><a href='{% url "valid" %}' class="nav-link">Conformant</a></li>
+        <li class="nav-item"><a href='{% url "notValid" %}' class="nav-link">Not conformant</a></li>
         <li class="nav-item">
             <form action="{% url 'logout' %}" method="post" style="display:inline;">
             {% csrf_token %}
@@ -72,24 +72,28 @@
             <td><a href='{% url "notChecked" %}'>{{ status_counts.0 }}</a></td>
         </tr>
         <tr>
+            <td>No access</td>
+            <td><a href='{% url "noAccess" %}'>{{ status_counts.1 }}</a></td>
+        </tr>
+        <tr>
             <td>Access level conformant (Technical interoperability)</td>
-            <td><a href='{% url "AccessLevel" %}'>{{ status_counts.1 }}</a></td>
+            <td><a href='{% url "AccessLevel" %}'>{{ status_counts.2 }}</a></td>
         </tr>
         <tr>
-            <td>Syntax level conformant (Syntactic interoperability)</td>
-            <td><a href='{% url "SyntaxLevel" %}'>{{ status_counts.2 }}</a></td>
+            <td>JSON conformant (Syntactic interoperability)</td>
+            <td><a href='{% url "SyntaxLevel" %}'>{{ status_counts.3 }}</a></td>
         </tr>
         <tr>
-            <td>Semantic level conformant (Syntactic interoperability)</td>
-            <td><a href='{% url "SyntacticLevel" %}'>{{ status_counts.3 }}</a></td>
+            <td>JSON-LD 1.1 conformant (Syntactic interoperability)</td>
+            <td><a href='{% url "SyntacticLevel" %}'>{{ status_counts.4 }}</a></td>
         </tr>
         <tr>
-            <td>Semantic interoperability</td>
-            <td><a href='{% url "SemanticLevel" %}'>{{ status_counts.4 }}</a></td>
+            <td>Ontology conformant (Semantic interoperability)</td>
+            <td><a href='{% url "SemanticLevel" %}'>{{ status_counts.5 }}</a></td>
         </tr>
         <tr>
-            <td>AURORAL conformant</td>
-            <td><a href='{% url "valid" %}'>{{ status_counts.5 }}</a></td>
+            <td>AURORAL conformant (Semantic interoperability)</td>
+            <td><a href='{% url "valid" %}'>{{ status_counts.6 }}</a></td>
         </tr>
     </table>
     

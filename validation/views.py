@@ -11,7 +11,6 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count
-from django.contrib.auth.decorators import login_required, user_passes_test
 
 class AllTD(LoginRequiredMixin, ListView):
     model = ValidThingDescription
@@ -26,14 +25,16 @@ class AllTD(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        status_counts_query = ValidThingDescription.objects.values('conformance_status').annotate(
+        filtered_queryset = self.get_queryset()
+
+        status_counts_query = filtered_queryset.values('conformance_status').annotate(
             count=Count('conformance_status'))
         status_counts = {status['conformance_status']: status['count'] for status in status_counts_query}
         for status in range(6):
             status_counts.setdefault(status, 0)
 
         total = sum(status_counts.values())
-        conformant = status_counts.get(5, 0)
+        conformant = status_counts.get(6, 0)
         not_conformant = total - conformant
 
         context['status_counts'] = status_counts
@@ -44,61 +45,109 @@ class AllTD(LoginRequiredMixin, ListView):
         return context
 
 
-class ValidTD(ListView):
+class ValidTD(LoginRequiredMixin, ListView):
     model = ValidThingDescription
     template_name = "valid.html"
 
     def get_queryset(self):
-        return ValidThingDescription.objects.filter(is_valid=True)
+        queryset = super().get_queryset().filter(is_valid=True)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
 
-class NotValidTD(ListView):
+class NotValidTD(LoginRequiredMixin, ListView):
     model = ValidThingDescription
     template_name = "notValid.html"
 
     def get_queryset(self):
-        return ValidThingDescription.objects.filter(is_valid=False)
+        queryset = super().get_queryset().filter(is_valid=False)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
 
-class NotChecked(ListView):
+class NotChecked(LoginRequiredMixin, ListView):
     model = ValidThingDescription
     template_name = "status/access.html"
 
     def get_queryset(self):
-        return ValidThingDescription.objects.filter(conformance_status=0)
+        queryset = super().get_queryset().filter(conformance_status=0)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
 
-class AccessLevel(ListView):
+class noAccess(LoginRequiredMixin, ListView):
     model = ValidThingDescription
     template_name = "status/access.html"
 
     def get_queryset(self):
-        return ValidThingDescription.objects.filter(conformance_status=1)
+        queryset = super().get_queryset().filter(conformance_status=1)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
-
-class SyntaxLevel(ListView):
+class AccessLevel(LoginRequiredMixin, ListView):
     model = ValidThingDescription
     template_name = "status/access.html"
 
     def get_queryset(self):
-        return ValidThingDescription.objects.filter(conformance_status=2)
+        queryset = super().get_queryset().filter(conformance_status=2)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
 
-class SyntacticLevel(ListView):
+class SyntaxLevel(LoginRequiredMixin, ListView):
     model = ValidThingDescription
     template_name = "status/access.html"
 
     def get_queryset(self):
-        return ValidThingDescription.objects.filter(conformance_status=3)
+        queryset = super().get_queryset().filter(conformance_status=3)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
 
-class SemanticLevel(ListView):
+class SyntacticLevel(LoginRequiredMixin, ListView):
     model = ValidThingDescription
     template_name = "status/access.html"
 
     def get_queryset(self):
-        return ValidThingDescription.objects.filter(conformance_status=4)
+        queryset = super().get_queryset().filter(conformance_status=4)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
+class SemanticLevel(LoginRequiredMixin, ListView):
+    model = ValidThingDescription
+    template_name = "status/access.html"
+
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(conformance_status=5)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
+
+class AuroralLevel(LoginRequiredMixin, ListView):
+    model = ValidThingDescription
+    template_name = "status/access.html"
+
+    def get_queryset(self):
+        queryset = super().get_queryset().filter(conformance_status=6)
+        if not self.request.user.is_superuser:
+            user_profile = UserProfile.objects.get(user=self.request.user)
+            queryset = queryset.filter(company=user_profile.company.name)
+        return queryset
 
 def retrieve_endpoints_view(request):
     try:
@@ -153,15 +202,16 @@ def element_detail(request, item_id):
     return render(request, 'element.html', {'item': item})
 
 
-def validate_item(request, oid, property):
+def validate_item(request, oid, property, extra_parameters=None):
     try:
+        extra_parameters = request.GET
         url = Configuration.objects.first()
         item = ValidThingDescription.objects.get(oid=oid, property=property)
-        compliance_result, report_message = is_compliance(url.url_server, url.oid, oid, property)
+        compliance_result, report_message = is_compliance(url.url_server, url.oid, oid, property, extra_parameters)
         item.check_date = timezone.now()
-        if compliance_result == 5:
+        if compliance_result == 6:
             item.conformance_status = compliance_result
-            item.reportInfo = "WoT Conformant"
+            item.reportInfo = "AURORAL Conformant"
             item.is_valid = True
         elif not compliance_result:
             item.conformance_status = 1
